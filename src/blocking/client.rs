@@ -1,4 +1,4 @@
-#[cfg(any(feature = "native-tls", feature = "__rustls",))]
+#[cfg(any(feature = "native-tls", feature = "__rustls", ))]
 use std::any::Any;
 use std::convert::TryInto;
 use std::fmt;
@@ -838,7 +838,7 @@ impl ClientBuilder {
     ///
     /// This requires one of the optional features `native-tls` or
     /// `rustls-tls(-...)` to be enabled.
-    #[cfg(any(feature = "native-tls", feature = "__rustls",))]
+    #[cfg(any(feature = "native-tls", feature = "__rustls", ))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = "native-tls", feature = "rustls-tls"))))]
     pub fn use_preconfigured_tls(self, tls: impl Any) -> ClientBuilder {
         self.with_inner(move |inner| inner.use_preconfigured_tls(tls))
@@ -1112,6 +1112,7 @@ impl Drop for InnerClientHandle {
 
 impl ClientHandle {
     fn new(builder: ClientBuilder) -> crate::Result<ClientHandle> {
+        panic!("ClientHandle::new is not supported. Please see simple.rs usage examples");
         let timeout = builder.timeout;
         let builder = builder.inner;
         let (tx, rx) = mpsc::unbounded_channel::<(async_impl::Request, OneshotResponse)>();
@@ -1225,7 +1226,7 @@ impl ClientHandle {
 
 async fn forward<F>(fut: F, mut tx: OneshotResponse)
 where
-    F: Future<Output = crate::Result<async_impl::Response>>,
+    F: Future<Output=crate::Result<async_impl::Response>>,
 {
     use std::task::Poll;
 
@@ -1242,7 +1243,7 @@ where
             }
         }
     })
-    .await;
+        .await;
 
     if let Some(res) = res {
         let _ = tx.send(res);
