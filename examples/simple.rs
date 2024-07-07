@@ -1,35 +1,33 @@
-#![deny(warnings)]
+use std::env;
 
 // This is using the `tokio` runtime. You'll need the following dependency:
 //
 // `tokio = { version = "1", features = ["full"] }`
 #[cfg(not(target_arch = "wasm32"))]
-#[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
-    // Some simple CLI args requirements...
-    let url = if let Some(url) = std::env::args().nth(1) {
-        url
-    } else {
-        println!("No CLI URL provided, using default.");
-        "https://hyper.rs".into()
-    };
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    tokio::fstack_init(args.len(), args);
 
+    // Some simple CLI args requirements...
+    let url = String::from("https://hyper.rs");
     eprintln!("Fetching {url:?}...");
 
-    // reqwest::get() is a convenience function.
-    //
-    // In most cases, you should create/build a reqwest::Client and reuse
-    // it for all requests.
-    let res = reqwest::get(url).await?;
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
 
-    eprintln!("Response: {:?} {}", res.version(), res.status());
-    eprintln!("Headers: {:#?}\n", res.headers());
+    rt.block_on(async {
+        let local = tokio::task::LocalSet::new();
+        local.run_until(async move {
+            let res = reqwest::get(url).await.expect("request failed");
+            eprintln!("Response: {:?} {}", res.version(), res.status());
+            eprintln!("Headers: {:#?}\n", res.headers());
 
-    let body = res.text().await?;
-
-    println!("{body}");
-
-    Ok(())
+            let body = res.text().await.expect("response body failed");
+            println!("body: {body}");
+        }).await;
+    });
 }
 
 // The [cfg(not(target_arch = "wasm32"))] above prevent building the tokio::main function
